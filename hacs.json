@@ -1,0 +1,7 @@
+{
+  "name": "Home Audio Card",
+  "description": "A full-featured audio control card for Home Assistant with Music Assistant integration, Spotify/Plex browsing, and multi-room Sonos control.",
+  "render_readme": true,
+  "filename": "ha-audio-card.js",
+  "content_in_root": true
+}
