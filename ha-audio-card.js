@@ -700,7 +700,7 @@ class HaAudioCard extends HTMLElement {
     }
 
 
-    sh.innerHTML = this._queueOpen ? `
+    sh.innerHTML = `
       <div class="sh-handle-area"><div class="sh-handle"></div></div>
       <div class="sh-header">
         <span class="sh-title">Queue</span>
@@ -720,20 +720,6 @@ class HaAudioCard extends HTMLElement {
             </div>
             ${item.duration?`<div class="q-dur">${this._dur(item.duration)}</div>`:''}
           </div>`).join('')}
-      </div>` : `
-      <div class="sh-handle-area"><div class="sh-handle"></div></div>
-      <div class="sh-header"><span class="sh-title">Speakers</span><button class="sh-x" id="sh-close">✕</button></div>
-      <div class="sh-body">
-        ${ROOMS.map(r=>{
-          const s=this._hass?.states[r.sonos]; const on=s?.state==='playing'; const v=Math.round((s?.attributes?.volume_level??0)*100)
-          return `<div class="room-row"><div class="room-pip ${on?'on':''}"></div><div><div class="room-nm">${r.label}</div><div class="room-st">${on?`Playing · ${v}%`:s?.state==='paused'?'Paused':'Idle'}</div></div></div>`
-        }).join('')}
-        <div class="act-grid">
-          <button class="act-btn" id="act-whole"><div class="act-lbl">Whole House</div><div class="act-sub">Play everywhere</div></button>
-          <button class="act-btn" id="act-ung"><div class="act-lbl">Ungroup</div><div class="act-sub">Independent speakers</div></button>
-          <button class="act-btn danger" id="act-stop"><div class="act-lbl danger">Stop All</div><div class="act-sub">Pause everything</div></button>
-          <button class="act-btn muted" id="act-cancel"><div class="act-lbl muted">Cancel</div></button>
-        </div>
       </div>`
     app.appendChild(sh)
     this._on('sh-close',  ()=>this._closeSheet())
