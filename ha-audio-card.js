@@ -284,13 +284,14 @@ class HaAudioCard extends HTMLElement {
     const room    = this._roomObj()
     const massAttr = this._hass?.states[room.mass]?.attributes || {}
     const isLineIn = massAttr.source === 'Line-in'
+    const source = massAttr.source && massAttr.source !== 'Music Assistant Queue' ? massAttr.source : (attr.media_content_type || '')
 
     el.innerHTML = `
       <div class="view-tabs">
         <button class="vtab active" id="vtab-player">${I.note()} Now Playing</button>
         <button class="vtab" id="vtab-browse">${I.browse()} Browse</button>
       </div>
-      <p class="np-label">${room.label}</p>
+      <p class="np-label">${room.label}${source ? ' · <span style="opacity:0.55;font-size:10px">' + this._esc(source) + '</span>' : ''}</p>
       <div class="art-wrap">
         ${art ? `<img src="${art}" alt="">` : `<div class="art-placeholder">${I.note()}</div>`}
       </div>
@@ -762,4 +763,77 @@ class HaAudioCard extends HTMLElement {
   _ep(item)   { return JSON.stringify({uri:item.uri,media_type:item.media_type,name:item.name}).replace(/'/g,"&#39;") }
 }
 
-if (!customElements.get('ha-audio-card')) { window.customElements.define('ha-audio-card', HaAudioCard) }
+if (!customElements.get('ha-audio-card-v2')) { window.customElements.define('ha-audio-card-v2', HaAudioCard) }    if (this._groupOpen) {
+      const masterState = this._hass?.states[this._roomObj().sonos]
+      const groupMembers = masterState?.attributes?.group_members || [this._roomObj().sonos]
+      let rowsHtml = ''
+      for (const r of ROOMS) {
+        const s = this._hass?.states[r.sonos]
+        const playing = s?.state === 'playing' || s?.state === 'paused'
+        const vol = Math.round(((s?.attributes?.volume_level) || 0) * 100)
+        const isCurrentRoom = r.id === this._room
+        const isInGroup = groupMembers.includes(r.sonos)
+        const provider = s?.attributes?.app_id || ''
+        rowsHtml += '<div class="room-row" style="' + (isCurrentRoom ? 'background:rgba(255,255,255,0.04)' : '') + '">'
+        rowsHtml += '<div class="room-pip' + (playing ? ' on' : '') + '"></div>'
+        rowsHtml += '<div style="flex:1"><div class="room-nm">' + r.label
+        if (isCurrentRoom) rowsHtml += ' <span style="font-size:11px;color:rgba(255,255,255,0.35)">· playing here</span>'
+        rowsHtml += '</div><div class="room-st">' + (playing ? 'Playing · ' + vol + '%' : (s?.state === 'idle' ? 'Idle' : s?.state || 'Idle')) + '</div></div>'
+        if (!isCurrentRoom) {
+          if (isInGroup) {
+            rowsHtml += '<button class="act-btn" style="padding:8px 14px;border-color:rgba(56,189,248,0.4);background:rgba(56,189,248,0.1)" data-unjoin="' + r.sonos + '">'
+            rowsHtml += '<div class="act-lbl" style="color:#38bdf8;font-size:12px">Remove</div></button>'
+          } else {
+            rowsHtml += '<button class="act-btn" style="padding:8px 14px" data-join="' + r.sonos + '">'
+            rowsHtml += '<div class="act-lbl" style="font-size:12px">Add</div></button>'
+          }
+        }
+        rowsHtml += '</div>'
+      }
+      sh.innerHTML = '<div class="sh-handle-area"><div class="sh-handle"></div></div>'
+        + '<div class="sh-header"><span class="sh-title">Speakers</span><button class="sh-x" id="sh-close">✕</button></div>'
+        + '<div class="sh-body">'
+        + '<div style="padding:8px 20px 4px;font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:0.06em;text-transform:uppercase">Add or remove from current group</div>'
+        + rowsHtml
+        + '<div class="action-grid" style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+        + '<button class="act-btn" id="act-whole"><div class="act-lbl">Whole House</div><div class="act-sub">Add all speakers</div></button>'
+        + '<button class="act-btn danger" id="act-stop"><div class="act-lbl danger">Stop All</div><div class="act-sub">Pause everything</div></button>'
+        + '<button class="act-btn" id="act-ung"><div class="act-lbl">Ungroup All</div><div class="act-sub">Independent speakers</div></button>'
+        + '<button class="act-btn muted" id="act-cancel"><div class="act-lbl muted">Close</div></button>'
+        + '</div></div>'
+      app.appendChild(sh)
+      sh.querySelector('#sh-close').addEventListener('click', () => this._closeSheet())
+      sh.querySelector('#act-whole').addEventListener('click', () => {
+        haptic('medium')
+        const others = ALL_SONOS.filter(e => e !== this._roomObj().sonos)
+        this._call('sonos', 'join', { master: this._roomObj().sonos, entity_id: others })
+        setTimeout(() => { this._renderSheet() }, 500)
+      })
+      sh.querySelector('#act-ung').addEventListener('click', () => {
+        haptic('medium')
+        this._call('sonos', 'unjoin', {}, { entity_id: ALL_SONOS })
+        this._closeSheet()
+      })
+      sh.querySelector('#act-stop').addEventListener('click', () => {
+        haptic('heavy')
+        this._call('media_player', 'media_stop', {}, { entity_id: ALL_SONOS })
+        this._closeSheet()
+      })
+      sh.querySelector('#act-cancel').addEventListener('click', () => this._closeSheet())
+      sh.querySelectorAll('[data-join]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          haptic('light')
+          this._call('sonos', 'join', { master: this._roomObj().sonos, entity_id: [btn.dataset.join] })
+          setTimeout(() => { this._groupOpen = true; this._renderSheet() }, 800)
+        })
+      })
+      sh.querySelectorAll('[data-unjoin]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          haptic('light')
+          this._call('sonos', 'unjoin', {}, { entity_id: [btn.dataset.unjoin] })
+          setTimeout(() => { this._groupOpen = true; this._renderSheet() }, 800)
+        })
+      })
+      return
+    }
+
