@@ -677,11 +677,11 @@ class HaAudioCard extends HTMLElement {
       sh.querySelector('#act-whole').addEventListener('click', () => {
         haptic('medium')
         const others = ALL_SONOS.filter(e => e !== this._roomObj().sonos)
-        this._call('sonos', 'join', { master: this._roomObj().sonos, entity_id: others })
+        this._hass.callService('media_player', 'join', { group_members: ALL_SONOS }, { entity_id: this._roomObj().sonos })
         setTimeout(() => { this._groupOpen=true; this._renderSheet() }, 600)
       })
       sh.querySelector('#act-ung').addEventListener('click', () => {
-        haptic('medium'); this._call('sonos','unjoin',{},{entity_id:ALL_SONOS}); this._closeSheet()
+        haptic('medium'); this._hass.callService('media_player', 'unjoin', {}, { entity_id: ALL_SONOS }); this._closeSheet()
       })
       sh.querySelector('#act-stop').addEventListener('click', () => {
         haptic('heavy'); this._call('media_player','media_stop',{},{entity_id:ALL_SONOS}); this._closeSheet()
@@ -690,14 +690,14 @@ class HaAudioCard extends HTMLElement {
       sh.querySelectorAll('[data-join]').forEach(btn => {
         btn.addEventListener('click', () => {
           haptic('light')
-          this._call('sonos', 'join', { master: this._roomObj().sonos, entity_id: [btn.dataset.join] })
+          this._hass.callService('media_player', 'join', { group_members: [this._roomObj().sonos, btn.dataset.join] }, { entity_id: this._roomObj().sonos })
           setTimeout(() => { this._groupOpen=true; this._renderSheet() }, 800)
         })
       })
       sh.querySelectorAll('[data-unjoin]').forEach(btn => {
         btn.addEventListener('click', () => {
           haptic('light')
-          this._call('sonos', 'unjoin', {}, { entity_id: [btn.dataset.unjoin] })
+          this._hass.callService('media_player', 'unjoin', {}, { entity_id: [btn.dataset.unjoin] })
           setTimeout(() => { this._groupOpen=true; this._renderSheet() }, 800)
         })
       })
