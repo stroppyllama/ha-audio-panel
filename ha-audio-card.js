@@ -318,8 +318,8 @@ class HaAudioCard extends HTMLElement {
     this._on('btn-play',   () => this._svc(playing?'media_pause':'media_play'))
     this._on('btn-prev',   () => this._svc('media_previous_track'))
     this._on('btn-next',   () => this._svc('media_next_track'))
-    this._on('btn-shuf',   () => this._svc('shuffle_set',{shuffle:!shuffle}))
-    this._on('btn-rep',    () => { const n=repeat==='off'?'all':repeat==='all'?'one':'off'; this._svc('repeat_set',{repeat:n}) })
+    this._on('btn-shuf',   () => this._hass.callService('media_player','shuffle_set',{shuffle:!shuffle},{entity_id:room.mass}))
+    this._on('btn-rep',    () => { const n=repeat==='off'?'all':repeat==='all'?'one':'off'; this._hass.callService('media_player','repeat_set',{repeat:n},{entity_id:room.mass}) })
     this._on('btn-queue',  () => { haptic('light'); this._openQueue() })
     const vEl = this._root.getElementById('vol')
     vEl?.addEventListener('input', e => { const v=+e.target.value; e.target.style.background=`linear-gradient(to right,rgba(255,255,255,.85) ${v}%,rgba(255,255,255,.18) ${v}%)` })
@@ -739,7 +739,7 @@ class HaAudioCard extends HTMLElement {
     if (!pic) return null
     return pic.startsWith('http')?pic:`${location.protocol}//${location.hostname}:8123${pic}`
   }
-  _svc(service,data={}) { this._call('media_player',service,data,{entity_id:this._roomObj().sonos}) }
+  _svc(service,data={}) { this._call('media_player',service,data,{entity_id:this._roomObj().mass}) }
   _call(domain,service,data={},target={}) { haptic('light'); this._hass.callService(domain,service,data,Object.keys(target).length?target:undefined) }
   _on(id,fn) { this._root.getElementById(id)?.addEventListener('click',fn) }
   _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
